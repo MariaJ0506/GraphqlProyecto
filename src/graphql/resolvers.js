@@ -132,6 +132,9 @@ const resolvers = {
         { $sort: { count: -1 } }
       ];
       return await db.collection("professionals").aggregate(pipeline).toArray();
+    },
+    async services(_, __, { db }) {
+      return await db.collection("services").find().toArray();
     }
   },
   Mutation: {

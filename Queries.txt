@@ -220,3 +220,6 @@ query CantidadPorGenero {
     count
   }
 }
+
+
+npm install @faker-js/faker@latest

@@ -1,4 +1,3 @@
-//resolvers.js
 const { ObjectId } = require("mongodb");
 const { UserInputError } = require("apollo-server");
 
@@ -178,17 +177,100 @@ const resolvers = {
       await db.collection("professionals").updateOne({ _id }, { $set: { services: sIds } });
       return true;
     },
+    
+    // Nuevo resolver para agregar experiencia laboral
+    async addWorkExperience(_, { professionalId, experience }, { db }) {
+      const _id = new ObjectId(professionalId);
+      const professional = await db.collection("professionals").findOne({ _id });
+      if (!professional) {
+          throw new UserInputError("El profesional no fue encontrado.");
+      }
+      
+      const updateResult = await db.collection("professionals").updateOne(
+          { _id },
+          { $push: { workExperience: experience } }
+      );
+      
+      if (updateResult.modifiedCount > 0) {
+        const updatedProfessional = await db.collection("professionals").findOne({ _id });
+        // Para devolver el profesional completo con los servicios y la experiencia laboral
+        const serviceObjects = await db.collection("services").find({ _id: { $in: updatedProfessional.services } }).toArray();
+        return {
+          id: String(updatedProfessional._id),
+          ...updatedProfessional,
+          services: serviceObjects.map(s => ({ id: String(s._id), name: s.name }))
+        };
+      }
+      
+      throw new Error("No se pudo agregar la experiencia laboral.");
+    },
+
+    // Nuevo resolver para agregar educación
+    async addEducation(_, { professionalId, education }, { db }) {
+    const _id = new ObjectId(professionalId);
+    
+    // 1. Verificar si el profesional existe.
+    const professionalExists = await db.collection("professionals").findOne({ _id });
+    if (!professionalExists) {
+        throw new UserInputError("El profesional no fue encontrado.");
+    }
+    
+    // 2. Actualizar el documento del profesional con la nueva educación.
+    const updateResult = await db.collection("professionals").updateOne(
+        { _id },
+        { $push: { education: education } }
+    );
+    
+    // 3. Si la modificación fue exitosa, devolver el profesional actualizado.
+    if (updateResult.modifiedCount > 0) {
+        const updatedProfessional = await db.collection("professionals").findOne({ _id });
+        const serviceObjects = await db.collection("services").find({ _id: { $in: updatedProfessional.services } }).toArray();
+        
+        return {
+            id: String(updatedProfessional._id),
+            ...updatedProfessional,
+            services: serviceObjects.map(s => ({ id: String(s._id), name: s.name }))
+        };
+    }
+    
+    // 4. Si no se modificó nada, lanzar un error.
+    throw new Error("No se pudo agregar la educación.");
+    },
+
+    // Resolver de applyToVacancy con validación
     async applyToVacancy(_, { professionalId, vacancyId }, { db }) {
+      const pId = new ObjectId(professionalId);
+      const vId = new ObjectId(vacancyId);
+      const today = new Date();
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      // Contar las postulaciones del profesional en el mes actual
+      const applicationsCount = await db.collection("applications").countDocuments({
+        professionalId: pId,
+        appliedAt: {
+          $gte: startOfMonth
+        }
+      });
+      
+      // Validar el límite de 3 postulaciones
+      if (applicationsCount >= 3) {
+        throw new UserInputError("No puedes postular a más de 3 puestos por mes.");
+      }
+
+      // Registrar la nueva postulación si la validación pasa
       const doc = {
-        professionalId: new ObjectId(professionalId),
-        vacancyId: new ObjectId(vacancyId),
-        appliedAt: new Date()
+        professionalId: pId,
+        vacancyId: vId,
+        appliedAt: today
       };
+      
       try {
         await db.collection("applications").insertOne(doc);
         return true;
       } catch (e) {
-        if (e.code === 11000) return false; // ya aplicado
+        if (e.code === 11000) {
+          throw new UserInputError("Ya te has postulado a esta vacante.");
+        }
         throw e;
       }
     }

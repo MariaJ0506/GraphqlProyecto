@@ -1,4 +1,3 @@
-//typeDefs.js
 const { gql } = require("apollo-server");
 
 const typeDefs = gql`
@@ -61,16 +60,15 @@ const typeDefs = gql`
   }
 
   type Query {
-  employerSummary(id: ID!): EmployerSummary
-  professionals: [Professional!]!
-  vacancies: [Vacancy!]!
-  applicantsByService(serviceId: ID!): [String!]!
-  professionalsByServiceStats: [ServiceStat!]!
-  professionalsByGender: [GenderStat!]!
-  professional(id: ID!): Professional
-  services: [Service!]!
-}
-
+    employerSummary(id: ID!): EmployerSummary
+    professionals: [Professional!]!
+    vacancies: [Vacancy!]!
+    applicantsByService(serviceId: ID!): [String!]!
+    professionalsByServiceStats: [ServiceStat!]!
+    professionalsByGender: [GenderStat!]!
+    professional(id: ID!): Professional
+    services: [Service!]!
+  }
 
   input EmployerInput {
     type: String
@@ -89,12 +87,28 @@ const typeDefs = gql`
     services: [ID!]!
   }
 
+  input WorkExperienceInput {
+    jobTitle: String!
+    company: String!
+    startDate: String
+    endDate: String
+    description: String
+  }
+
+  input EducationInput {
+    degree: String!
+    institution: String!
+    year: Int
+  }
+
   type Mutation {
     createService(name: String!): Service!
     registerEmployer(data: EmployerInput!): EmployerSummary!
     registerProfessional(data: ProfessionalInput!): Professional!
     assignServicesToProfessional(professionalId: ID!, serviceIds: [ID!]!): Boolean!
     applyToVacancy(professionalId: ID!, vacancyId: ID!): Boolean!
+  addWorkExperience(professionalId: ID!, experience: WorkExperienceInput!): Professional!
+    addEducation(professionalId: ID!, education: EducationInput!): Professional!
   }
 `;
 

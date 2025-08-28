@@ -107,8 +107,9 @@ const typeDefs = gql`
     registerProfessional(data: ProfessionalInput!): Professional!
     assignServicesToProfessional(professionalId: ID!, serviceIds: [ID!]!): Boolean!
     applyToVacancy(professionalId: ID!, vacancyId: ID!): Boolean!
-  addWorkExperience(professionalId: ID!, experience: WorkExperienceInput!): Professional!
+    addWorkExperience(professionalId: ID!, experience: WorkExperienceInput!): Professional!
     addEducation(professionalId: ID!, education: EducationInput!): Professional!
+    createVacancy(title: String!, serviceId: ID!, employerId: ID!, location: String): Vacancy!
   }
 `;
 

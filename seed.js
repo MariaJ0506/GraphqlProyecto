@@ -37,7 +37,7 @@ async function seedDatabase() {
         // 2. Crear 50 empleadores (mezcla de físicos y jurídicos)
         const employers = [];
         for (let i = 0; i < 50; i++) {
-            const isJuridico = faker.datatype.boolean(); // Genera true o false
+            const isJuridico = faker.helpers.arrayElement([true, false]); // Genera true o false
             if (isJuridico) {
                 employers.push({
                     _id: new ObjectId(),

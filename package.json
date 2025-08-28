@@ -1,0 +1,26 @@
+{
+  "name": "graphql-proyecto",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "reset-db": "node reset-db.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@faker-js/faker": "^10.0.0",
+    "apollo-server": "^3.13.0",
+    "dotenv": "^17.2.1",
+    "graphql": "^16.11.0",
+    "mongodb": "^6.19.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

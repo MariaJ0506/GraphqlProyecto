@@ -1,0 +1,227 @@
+Server=localhost;Database=master;Trusted_Connection=True;
+
+----------------------------------------------------------------------------------
+ 			Comandos para ejecutar en Visual.
+----------------------------------------------------------------------------------
+
+npm install 
+npm start 
+
+----------------------------------------------------------------------------------
+		Si no deja y sale aquel error se pone esto.
+----------------------------------------------------------------------------------
+
+npm pkg set scripts.start="node index.js"
+npm i -D nodemon
+npm pkg set scripts.dev="nodemon index.js"
+npm start
+
+----------------------------------------------------------------------------------
+		Si aun así no funciona entonces se ponen estos. 
+----------------------------------------------------------------------------------
+
+1- Mata el proceso del puerto en el que se ejecuta. 
+
+npx kill-port 4000
+npm start
+
+2- Cambia el puerto sin que se toque el código. 
+
+$env:PORT=4001
+npm start
+
+-Y se cambia en el .env 
+
+PORT=4001
+
+3- Se cierra cualquier servidor que haya estado abierto con anterioridad. 
+
+Get-Process node | Stop-Process -Force
+npm start
+
+----------------------------------------------------------------------------------
+		      Comandos para ejecutar en el Mongo. 
+----------------------------------------------------------------------------------
+
+use('Proyecto');
+
+// Crear/limpiar colecciones
+const must = ["services","employers","professionals","resumes","vacancies","applications"];
+const existing = new Set(db.getCollectionInfos().map(c => c.name));
+must.forEach(c => { if (!existing.has(c)) db.createCollection(c); db[c].deleteMany({}); });
+
+// Datos base
+const services = [
+  { name: "Informática" },
+  { name: "Electricista" },
+  { name: "Contabilidad" },
+  { name: "Administración" }
+];
+const employers = [
+  { type: "Juridica", companyName: "ACME S.A.", taxId: "3-101-123456", position: "RRHH" }
+];
+const professionals = [
+  { type: "Fisica", firstName: "María", lastName: "Gómez", email: "maria@mail.com", gender: "F", services: [] }
+];
+const resumes = [
+  {
+    professionalRef: 0,
+    education: [{ degree: "Bachiller", area: "Informática", institution: "UTN", year: 2022 }],
+    titles:    [{ name: "CCNA", issuer: "Cisco", year: 2023 }],
+    experience:[{ company: "Tech SA", role: "Dev", from: "2022-01-01", to: null, description: "Desarrollo backend y consultas SQL" }],
+    skills: ["SQL","Node.js"]
+  }
+];
+const vacancies = [
+  { employerRef: 0, serviceRef: 0, title: "Desarrollador Jr",     location: "Puntarenas", createdAt: "2025-08-05T10:00:00Z" },
+  { employerRef: 0, serviceRef: 1, title: "Técnico Electricista", location: "Esparza",    createdAt: "2025-08-06T10:00:00Z" },
+  { employerRef: 0, serviceRef: 0, title: "QA Jr",                location: "Miramar",    createdAt: "2025-08-07T10:00:00Z" }
+];
+const applications = [
+  { professionalRef: 0, vacancyRef: 0, appliedAt: "2025-08-05T12:00:00Z", status: "POSTULADO" },
+  { professionalRef: 0, vacancyRef: 1, appliedAt: "2025-08-06T12:00:00Z", status: "POSTULADO" },
+  { professionalRef: 0, vacancyRef: 2, appliedAt: "2025-08-07T12:00:00Z", status: "POSTULADO" }
+];
+
+// Inserciones
+const sRes = db.services.insertMany(services);
+const eRes = db.employers.insertMany(employers);
+const pRes = db.professionals.insertMany(professionals);
+
+// Profesional con 2 servicios: Informática (0) y Contabilidad (2)
+db.professionals.updateOne(
+  { _id: pRes.insertedIds["0"] },
+  { $set: { services: [ sRes.insertedIds["0"], sRes.insertedIds["2"] ] } }
+);
+
+// Resumes
+resumes.forEach(r => db.resumes.insertOne({
+  professionalId: pRes.insertedIds[r.professionalRef],
+  education: r.education, titles: r.titles, experience: r.experience, skills: r.skills
+}));
+
+// Vacantes
+const vIds = [];
+vacancies.forEach(v => {
+  const out = db.vacancies.insertOne({
+    employerId: eRes.insertedIds[v.employerRef],
+    serviceId:  sRes.insertedIds[v.serviceRef],
+    title: v.title,
+    location: v.location,
+    createdAt: new Date(v.createdAt)
+  });
+  vIds.push(out.insertedId);
+});
+
+// Postulaciones
+applications.forEach(a => db.applications.insertOne({
+  professionalId: pRes.insertedIds[a.professionalRef],
+  vacancyId: vIds[a.vacancyRef],
+  appliedAt: new Date(a.appliedAt),
+  status: a.status
+}));
+
+// Índices
+db.professionals.createIndex({ services: 1 });
+db.vacancies.createIndex({ serviceId: 1, createdAt: -1 });
+db.applications.createIndex({ professionalId: 1, appliedAt: 1 });
+
+// Resumen
+print("Seed OK");
+print("services:", db.services.countDocuments());
+print("vacancies:", db.vacancies.countDocuments());
+print("applications:", db.applications.countDocuments());
+
+// Listar colecciones
+printjson(db.getCollectionInfos().map(c => c.name));
+
+
+----------------------------------------------------------------------------------
+		      Comandos para ejecutar en el Apollo. 
+----------------------------------------------------------------------------------
+
+- Para verificar que todo responda. 
+
+query {
+  inventarioVacantes {
+    id
+    titulo
+    area { id name }
+    empleador
+    ubicacion
+    fecha
+  }
+}
+
+query {
+  obtenerOferentes {
+    id
+    nombre
+    apellido
+    correo_electronico
+    genero
+    servicios { id name }
+  }
+}
+
+-Para diferenciar si un empleador es jurídico o es físico, en el código de visual se debe identificar en como este escrito. 
+
+// en resumenEmpleador
+const nombre = emp.companyName ?? [emp.firstName, emp.lastName].filter(Boolean).join(' ');
+
+// en inventarioVacantes (para cada vacante)
+empleador: v.emp.companyName ?? [v.emp.firstName, v.emp.lastName].filter(Boolean).join(' ')
+
+-Si el nombre de la persona en las impresiones sale como "ACME S.A" entonces es un empleador Juridico. 
+
+
+-Para poder ver si se pueden hacer tres solicitudes de un mismo empleador para diferentes empleos se pone esto en el Apollo y abajo en las variables se pone el id del empleador y la vacante a la cual quiere aplciar. 
+
+mutation Aplicar($p: ID!, $v: ID!) {
+  aplicar(professionalId: $p, vacancyId: $v)
+}
+
+{
+  "p": "689cccf0b336e637ff6c74b3",
+  "v": "689cccf0b336e637ff6c74b6"
+}
+
+-Cuando se quiera realizar de nuevo el proceso de registro para un empleador en una vacante se debe hacer lo siguiente. 
+
+MongoCompass → Proyecto → applications.
+
+-En Filter se pega esto, el id del empleador cambia al igual que el mes de solicitud. 
+
+{
+  professionalId: ObjectId("689cccf0b336e637ff6c74b8"),
+  appliedAt: {
+    $gte: ISODate("2025-08-01T00:00:00Z"),
+    $lt:  ISODate("2025-09-01T00:00:00Z")
+  }
+}
+
+Pon el Filter correcto → Find.
+Pulsa DELETE → Delete Many.
+
+-O bien se puede actualizar moviendo las fechas. 
+
+UPDATE → Update Many.
+En Update pega esto:
+
+{ $set: { appliedAt: ISODate("2025-07-10T12:00:00Z") } }
+
+-Luego ve a Apollo y ejecuta la mutación. 
+
+mutation($p:ID!, $v:ID!){
+  aplicar(professionalId:$p, vacancyId:$v)
+}
+
+-En variables pone el id del profesional y la id de la vacante. 
+
+{
+  "p": "689cccf0b336e637ff6c74b3",
+  "v": "689cccf0b336e637ff6c74b6"
+}
+
+-Lo corre todo y debería de decir true, cuenta con un máximo de tres veces, a la cuarta vez se cae por que soplo hay un rango permitido, siendo ese de tres. 
+

@@ -59,11 +59,17 @@ const typeDefs = gql`
     count: Int!
   }
 
+  # Nuevo tipo para la consulta de postulantes por servicio
+  type ApplicantsByServiceResult {
+    serviceName: String!
+    applicants: [String!]!
+  }
+
   type Query {
     employerSummary(id: ID!): EmployerSummary
     professionals: [Professional!]!
     vacancies: [Vacancy!]!
-    applicantsByService(serviceId: ID!): [String!]!
+    applicantsByService(serviceId: ID!): ApplicantsByServiceResult!
     professionalsByServiceStats: [ServiceStat!]!
     professionalsByGender: [GenderStat!]!
     professional(id: ID!): Professional

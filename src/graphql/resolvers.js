@@ -94,6 +94,14 @@ const resolvers = {
     },
     async applicantsByService(_, { serviceId }, { db }) {
       const sid = new ObjectId(serviceId);
+
+      // 1. Obtener el nombre del servicio
+      const service = await db.collection("services").findOne({ _id: sid });
+      if (!service) {
+        throw new UserInputError("El ID del servicio no es válido.");
+      }
+
+      // 2. Ejecutar la pipeline de agregación para obtener los postulantes
       const pipeline = [
         { $lookup: { from: "vacancies", localField: "vacancyId", foreignField: "_id", as: "v" } },
         { $match: { "v.0.serviceId": sid } },
@@ -102,8 +110,15 @@ const resolvers = {
         { $group: { _id: "$fullName" } },
         { $project: { _id: 0, name: "$_id" } }
       ];
+      
       const results = await db.collection("applications").aggregate(pipeline).toArray();
-      return results.map(r => r.name);
+      const applicants = results.map(r => r.name);
+
+      // 3. Devolver un objeto con el nombre del servicio y los postulantes
+      return {
+        serviceName: service.name,
+        applicants: applicants
+      };
     },
     async professionalsByServiceStats(_, __, { db }) {
       const pipeline = [

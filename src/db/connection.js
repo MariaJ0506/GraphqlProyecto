@@ -1,4 +1,5 @@
-//connection.js
+// connection.js
+
 const { MongoClient } = require("mongodb");
 
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/ProyectoGraphQL";
@@ -18,11 +19,20 @@ async function startDb() {
     db.collection("applications").createIndex({ professionalId: 1, appliedAt: 1 }),
     db.collection("professionals").createIndex({ canton: 1 }),
     db.collection("vacancies").createIndex({ location: 1 }),
-    db.collection("applications").createIndex(
+  ]);
+
+  // Manejar el índice único por separado para evitar errores de duplicado
+  try {
+    await db.collection("applications").createIndex(
       { professionalId: 1, vacancyId: 1 },
       { unique: true, name: "UQ_application_unique" }
-    )
-  ]);
+    );
+  } catch (e) {
+    if (e.code !== 11000) {
+      console.error("Error creating unique index:", e);
+      throw e;
+    }
+  }
 
   console.log("Database indexes ensured.");
   return db;

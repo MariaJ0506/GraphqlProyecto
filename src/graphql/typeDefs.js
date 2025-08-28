@@ -59,7 +59,6 @@ const typeDefs = gql`
     count: Int!
   }
 
-  # Nuevo tipo para la consulta de postulantes por servicio
   type ApplicantsByServiceResult {
     serviceName: String!
     applicants: [String!]!

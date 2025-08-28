@@ -95,13 +95,11 @@ const resolvers = {
     async applicantsByService(_, { serviceId }, { db }) {
       const sid = new ObjectId(serviceId);
 
-      // 1. Obtener el nombre del servicio
       const service = await db.collection("services").findOne({ _id: sid });
       if (!service) {
         throw new UserInputError("El ID del servicio no es válido.");
       }
 
-      // 2. Ejecutar la pipeline de agregación para obtener los postulantes
       const pipeline = [
         { $lookup: { from: "vacancies", localField: "vacancyId", foreignField: "_id", as: "v" } },
         { $match: { "v.0.serviceId": sid } },
@@ -114,7 +112,6 @@ const resolvers = {
       const results = await db.collection("applications").aggregate(pipeline).toArray();
       const applicants = results.map(r => r.name);
 
-      // 3. Devolver un objeto con el nombre del servicio y los postulantes
       return {
         serviceName: service.name,
         applicants: applicants
@@ -158,18 +155,30 @@ const resolvers = {
       return { id: insertedId, name };
     },
     async registerEmployer(_, { data }, { db }) {
-      const isCompany = !!(data.companyName && data.companyName.trim().length);
-      const isPerson = !!((data.firstName && data.firstName.trim()) || (data.lastName && data.lastName.trim()));
-      if (!isCompany && !isPerson) throw new UserInputError("Debe indicar companyName (jurídica) o firstName/lastName (física).");
+      if (!data.type) {
+        throw new UserInputError("Debe especificar el tipo de empleador: 'fisica' o 'juridica'.");
+      }
+
       const doc = {
-        employerType: data.type ?? null,
+        employerType: data.type.trim().toLowerCase(),
         firstName: data.firstName?.trim() || null,
         lastName: data.lastName?.trim() || null,
-        companyName: isCompany ? data.companyName.trim() : null,
+        companyName: data.companyName?.trim() || null,
         taxId: data.taxId?.trim() || null
       };
+      
+      if (doc.employerType === 'fisica' && (!doc.firstName || !doc.lastName)) {
+          throw new UserInputError("Para empleadores de tipo 'fisica', se requiere firstName y lastName.");
+      }
+      
+      if (doc.employerType === 'juridica' && !doc.companyName) {
+          throw new UserInputError("Para empleadores de tipo 'juridica', se requiere companyName.");
+      }
+
       const { insertedId } = await db.collection("employers").insertOne(doc);
+      
       const name = doc.companyName ?? [doc.firstName, doc.lastName].filter(Boolean).join(" ");
+      
       return { id: String(insertedId), name, taxId: doc.taxId, vacanciesOffered: 0 };
     },
     async registerProfessional(_, { data }, { db }) {

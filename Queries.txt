@@ -1,0 +1,222 @@
+//////////////////////////////////////////////////
+#1 Crear un Servicio
+
+mutation CrearUnServicio {
+  createService(name: "Informática") {
+    id
+    name
+  }
+}
+
+//////////////////////////////////////////////////
+#2 Registrar una Empresa (Jurídica)
+
+mutation RegistrarEmpresaJuridica {
+  registerEmployer(data: {
+    type: "juridica"
+    companyName: "ACME Inc."
+    taxId: "3-101-123456"
+  }) {
+    id
+    name
+    taxId
+  }
+}
+
+//////////////////////////////////////////////////
+#3 Registrar una Persona (Física)
+
+mutation RegistrarPersonaFisica {
+  registerEmployer(data: {
+    type: "fisica"
+    firstName: "Ana"
+    lastName: "Solis"
+    taxId: "6-0123-0456"
+  }) {
+    id
+    name
+    taxId
+  }
+}
+
+//////////////////////////////////////////////////
+#4 Registrar un Profesional
+
+mutation RegistrarUnProfesional {
+  registerProfessional(data: {
+    firstName: "Juan"
+    lastName: "Perez"
+    taxId: "1-0111-0111"
+    email: "juan.perez@email.com"
+    services: [
+      "ID_DEL_SERVICIO_1",
+      "ID_DEL_SERVICIO_2"
+    ]
+  }) {
+    id
+    firstName
+    services {
+      id
+      name
+    }
+  }
+}
+
+//////////////////////////////////////////////////
+#5 Postularse a una Vacante
+
+mutation PostularseAVacante {
+  applyToVacancy(
+    professionalId: "ID_DEL_PROFESIONAL",
+    vacancyId: "ID_DE_LA_VACANTE"
+  )
+}
+
+//////////////////////////////////////////////////
+#6 Agregar experiencia laboral
+
+mutation AgregarExperienciaLaboral {
+  addWorkExperience(
+    professionalId: "ID_DEL_PROFESIONAL",
+    experience: {
+      jobTitle: "Desarrolladora Web"
+      company: "Innovate Solutions"
+      startDate: "2020-05-01"
+      endDate: "2023-08-30"
+      description: "Desarrollo y mantenimiento de sitios web con React."
+    }
+  ) {
+    id
+    firstName
+    workExperience {
+      jobTitle
+      company
+    }
+  }
+}
+
+//////////////////////////////////////////////////
+#7 Agregar educación
+
+mutation AgregarEducacion {
+  addEducation(
+    professionalId: "ID_DEL_PROFESIONAL",
+    education: {
+      degree: "Licenciatura en Ciencias de la Computación"
+      institution: "Universidad Nacional"
+      year: 2020
+    }
+  ) {
+    id
+    firstName
+    education {
+      degree
+      institution
+    }
+  }
+}
+
+//////////////////////////////////////////////////
+#8 Crear vacante
+
+mutation CrearVacante {
+  createVacancy(
+    title: "Especialista en Marketing Digital"
+    serviceId: "ID_DEL_SERVICIO",
+    employerId: "ID_DEL_EMPLEADOR",
+    location: "San José, Costa Rica"
+  ) {
+    id
+    title
+    employer
+    service {
+      name
+    }
+    createdAt
+  }
+}
+
+//////////////////////////////////////////////////
+#9 Listar vacantes
+
+query ListarVacantes {
+  vacancies {
+    id
+    title
+    service {
+      name
+    }
+    employer
+    location
+    createdAt
+  }
+}
+
+//////////////////////////////////////////////////
+///////////////// IMPRESIONES ////////////////////
+//////////////////////////////////////////////////
+#1 Impresión general del empleador con la siguiente información: Cédula, nombre, puestos ofertados
+
+query ResumenDeEmpleador {
+  employerSummary(id: "ID_DEL_EMPLEADOR") {
+    name
+    taxId
+    vacanciesOffered
+  }
+}
+
+#2 Imprimir información específica de un profesional (recibido como parámetro), cédula, nombre, profesiones
+
+query PerfilDeProfesional {
+  professional(id: "ID_DEL_PROFESIONAL") {
+    firstName
+    lastName
+    taxId
+    services {
+      name
+    }
+  }
+}
+
+#3 Impresión de inventario de plazas o puestos vacantes
+
+query InventarioDeVacantes {
+  vacancies {
+    id
+    title
+    service {
+      name
+    }
+    employer
+    location
+    createdAt
+  }
+}
+
+#4 Nombre de todos los profesionales postulantes para una determinada área, el usuario selecciona el área
+
+query PostulantesPorArea {
+  applicantsByService(serviceId: "ID_DEL_SERVICIO") {
+    serviceName
+    applicants
+  }
+}
+
+#5 Cantidad y porcentaje de profesionales registradas por área
+
+query EstadisticasPorServicio {
+  professionalsByServiceStats {
+    serviceName
+    count
+    percentage
+  }
+}
+
+#6 Cantidad de profesionales registrados por género
+
+query CantidadPorGenero {
+  professionalsByGender {
+    gender
+    count
+  }
+}

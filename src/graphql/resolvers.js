@@ -160,12 +160,13 @@ const resolvers = {
     }
   },
 
+  //Mutations
   Mutation: {
     async createService(_, { name }, { db }) {
       const { insertedId } = await db.collection("services").insertOne({ name });
       return { id: insertedId, name };
     },
-
+    //Here is the logic to register an employer
     async registerEmployer(_, { data }, { db }) {
       if (!data.type) throw new UserInputError("You must specify the type of employer: 'fisica' or 'juridica'.");
 
@@ -187,7 +188,7 @@ const resolvers = {
       const name = doc.companyName ?? [doc.firstName, doc.lastName].filter(Boolean).join(" ");
       return { id: String(insertedId), name, taxId: doc.taxId, vacanciesOffered: 0 };
     },
-
+    //Here is the logic to register a professional
     async registerProfessional(_, { data }, { db }) {
       const serviceIds = (data.services || []).map(id => new ObjectId(id));
       const doc = {
@@ -205,14 +206,14 @@ const resolvers = {
       const serviceObjects = await db.collection("services").find({ _id: { $in: newProfessional.services } }).toArray();
       return { id: String(newProfessional._id), ...newProfessional, services: serviceObjects.map(s => ({ id: String(s._id), name: s.name })) };
     },
-
+    //Here is the logic to add services
     async assignServicesToProfessional(_, { professionalId, serviceIds }, { db }) {
       const _id = new ObjectId(professionalId);
       const sIds = serviceIds.map(id => new ObjectId(id));
       await db.collection("professionals").updateOne({ _id }, { $set: { services: sIds } });
       return true;
     },
-
+    //Here is the logic to add work experience, the education is below
     async addWorkExperience(_, { professionalId, experience }, { db }) {
       const _id = new ObjectId(professionalId);
       const professional = await db.collection("professionals").findOne({ _id });
@@ -240,7 +241,7 @@ const resolvers = {
       }
       throw new Error("Education could not be added.");
     },
-
+    //Here is the logic to be able to apply to a vacancy
     async applyToVacancy(_, { professionalId, vacancyId }, { db }) {
       const pId = new ObjectId(professionalId);
       const vId = new ObjectId(vacancyId);
@@ -259,7 +260,7 @@ const resolvers = {
         throw e;
       }
     },
-
+    //Here is the logic to create a new vacancy
     async createVacancy(_, { title, serviceId, employerId, location }, { db }) {
       const sId = new ObjectId(serviceId);
       const eId = new ObjectId(employerId);
@@ -277,7 +278,7 @@ const resolvers = {
       return { id: String(insertedId), title: doc.title, service: { id: String(service._id), name: service.name }, employer: employerName, location: doc.location, createdAt: doc.createdAt.toISOString() };
     },
 
-    // --- NEW: Register full professional CV ---
+    // Register full professional CV 
     async registerFullProfessional(_, { data }, { db }) {
       const serviceIds = (data.services || []).map(id => new ObjectId(id));
 

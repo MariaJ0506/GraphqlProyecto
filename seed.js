@@ -1,7 +1,6 @@
-// Archivo: seed.js
-
 const { MongoClient, ObjectId } = require('mongodb');
-const { faker } = require('@faker-js/faker/locale/es'); // Importa faker en español
+const { Faker, es, en } = require('@faker-js/faker');
+const faker = new Faker({ locale: [es, en] });
 require('dotenv').config();
 
 const uri = process.env.MONGODB_URI;
@@ -13,7 +12,6 @@ async function seedDatabase() {
         const db = client.db(process.env.DB_NAME);
         console.log("Conectado a la base de datos.");
 
-        // Eliminar datos existentes
         console.log("Eliminando colecciones existentes...");
         const collections = ['services', 'employers', 'professionals', 'vacancies', 'applications'];
         for (const name of collections) {
@@ -25,7 +23,6 @@ async function seedDatabase() {
             }
         }
 
-        // 1. Crear 10 servicios
         const serviceNames = ['IT', 'Marketing', 'Contabilidad', 'Construcción', 'Diseño Gráfico', 'Recursos Humanos', 'Ventas', 'Legal', 'Salud', 'Educación'];
         const services = serviceNames.map(name => ({
             _id: new ObjectId(),
@@ -34,10 +31,9 @@ async function seedDatabase() {
         await db.collection('services').insertMany(services);
         console.log(`Insertados ${services.length} servicios.`);
 
-        // 2. Crear 50 empleadores (mezcla de físicos y jurídicos)
         const employers = [];
         for (let i = 0; i < 50; i++) {
-            const isJuridico = faker.helpers.arrayElement([true, false]); // Genera true o false
+            const isJuridico = faker.helpers.arrayElement([true, false]);
             if (isJuridico) {
                 employers.push({
                     _id: new ObjectId(),
@@ -58,20 +54,17 @@ async function seedDatabase() {
         await db.collection('employers').insertMany(employers);
         console.log(`Insertados ${employers.length} empleadores.`);
 
-        // 3. Crear 150 profesionales
         const professionals = [];
         const genders = ['Femenino', 'Masculino'];
         for (let i = 0; i < 150; i++) {
-            // Se selecciona un género aleatorio de la lista genders
             const gender = faker.helpers.arrayElement(genders);
             const firstName = faker.person.firstName(gender === 'Femenino' ? 'female' : 'male');
             const lastName = faker.person.lastName(gender === 'Femenino' ? 'female' : 'male');
-            
             professionals.push({
                 _id: new ObjectId(),
                 firstName: firstName,
                 lastName: lastName,
-                email: faker.internet.email({firstName: firstName, lastName: lastName}),
+                email: faker.internet.email({ firstName: firstName, lastName: lastName }),
                 gender: gender,
                 taxId: faker.string.numeric(10),
                 services: faker.helpers.arrayElements(services, { min: 1, max: 3 }).map(s => s._id),
@@ -92,7 +85,6 @@ async function seedDatabase() {
         await db.collection('professionals').insertMany(professionals);
         console.log(`Insertados ${professionals.length} profesionales.`);
 
-        // 4. Crear 100 vacantes
         const vacancies = [];
         for (let i = 0; i < 100; i++) {
             const randomEmployer = faker.helpers.arrayElement(employers);
@@ -109,19 +101,13 @@ async function seedDatabase() {
         await db.collection('vacancies').insertMany(vacancies);
         console.log(`Insertadas ${vacancies.length} vacantes.`);
 
-        // 5. Crear 500 postulaciones aleatorias únicas
         console.log(`Creando postulaciones...`);
         const applications = [];
         const uniqueApplications = new Set();
-        const maxApplicationsToCreate = 500;
-        let applicationsCount = 0;
-
-        while (applicationsCount < maxApplicationsToCreate) {
+        while (applications.length < 500) {
             const professionalId = faker.helpers.arrayElement(professionals)._id;
             const vacancyId = faker.helpers.arrayElement(vacancies)._id;
-            
             const key = `${professionalId.toString()}-${vacancyId.toString()}`;
-            
             if (!uniqueApplications.has(key)) {
                 uniqueApplications.add(key);
                 applications.push({
@@ -129,7 +115,6 @@ async function seedDatabase() {
                     vacancyId: vacancyId,
                     appliedAt: faker.date.recent({ days: 30 })
                 });
-                applicationsCount++;
             }
         }
         await db.collection('applications').insertMany(applications);

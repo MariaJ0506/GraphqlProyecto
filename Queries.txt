@@ -1,16 +1,24 @@
 //////////////////////////////////////////////////
-#1 Crear un Servicio
+1 Crear Servicios
 
-mutation CrearUnServicio {
+mutation CrearServicioInformatico {
   createService(name: "Informática") {
     id
     name
   }
 }
 
-//////////////////////////////////////////////////
-#2 Registrar una Empresa (Jurídica)
+mutation CrearServicioMarketing {
+  createService(name: "Marketing Digital") {
+    id
+    name
+  }
+}
 
+//////////////////////////////////////////////////
+2 Registrar Empresas / Personas
+
+# Jurídica
 mutation RegistrarEmpresaJuridica {
   registerEmployer(data: {
     type: "juridica"
@@ -23,9 +31,7 @@ mutation RegistrarEmpresaJuridica {
   }
 }
 
-//////////////////////////////////////////////////
-#3 Registrar una Persona (Física)
-
+# Física
 mutation RegistrarPersonaFisica {
   registerEmployer(data: {
     type: "fisica"
@@ -40,75 +46,50 @@ mutation RegistrarPersonaFisica {
 }
 
 //////////////////////////////////////////////////
-#4 Registrar un Profesional
+3 Registrar un Profesional COMPLETO (CV)  
 
-mutation RegistrarUnProfesional {
-  registerProfessional(data: {
+mutation RegistrarProfesionalCompleto {
+  registerFullProfessional(data: {
     firstName: "Juan"
     lastName: "Perez"
     taxId: "1-0111-0111"
     email: "juan.perez@email.com"
+    gender: "Masculino"
     services: [
       "ID_DEL_SERVICIO_1",
       "ID_DEL_SERVICIO_2"
     ]
+    workExperience: [
+      {
+        jobTitle: "Desarrollador Web"
+        company: "Innovate Solutions"
+        startDate: "2020-05-01"
+        endDate: "2023-08-30"
+        description: "Desarrollo y mantenimiento de sitios web con React."
+      }
+    ]
+    education: [
+      {
+        degree: "Licenciatura en Ciencias de la Computación"
+        institution: "Universidad Nacional"
+        year: 2020
+      }
+    ]
   }) {
     id
     firstName
+    lastName
+    email
+    gender
+    taxId
     services {
       id
       name
     }
-  }
-}
-
-//////////////////////////////////////////////////
-#5 Postularse a una Vacante
-
-mutation PostularseAVacante {
-  applyToVacancy(
-    professionalId: "ID_DEL_PROFESIONAL",
-    vacancyId: "ID_DE_LA_VACANTE"
-  )
-}
-
-//////////////////////////////////////////////////
-#6 Agregar experiencia laboral
-
-mutation AgregarExperienciaLaboral {
-  addWorkExperience(
-    professionalId: "ID_DEL_PROFESIONAL",
-    experience: {
-      jobTitle: "Desarrolladora Web"
-      company: "Innovate Solutions"
-      startDate: "2020-05-01"
-      endDate: "2023-08-30"
-      description: "Desarrollo y mantenimiento de sitios web con React."
-    }
-  ) {
-    id
-    firstName
     workExperience {
       jobTitle
       company
     }
-  }
-}
-
-//////////////////////////////////////////////////
-#7 Agregar educación
-
-mutation AgregarEducacion {
-  addEducation(
-    professionalId: "ID_DEL_PROFESIONAL",
-    education: {
-      degree: "Licenciatura en Ciencias de la Computación"
-      institution: "Universidad Nacional"
-      year: 2020
-    }
-  ) {
-    id
-    firstName
     education {
       degree
       institution
@@ -117,13 +98,13 @@ mutation AgregarEducacion {
 }
 
 //////////////////////////////////////////////////
-#8 Crear vacante
+4 Crear Vacantes
 
-mutation CrearVacante {
+mutation CrearVacanteMarketing {
   createVacancy(
     title: "Especialista en Marketing Digital"
-    serviceId: "ID_DEL_SERVICIO",
-    employerId: "ID_DEL_EMPLEADOR",
+    serviceId: "ID_DEL_SERVICIO"
+    employerId: "ID_DEL_EMPLEADOR"
     location: "San José, Costa Rica"
   ) {
     id
@@ -137,36 +118,19 @@ mutation CrearVacante {
 }
 
 //////////////////////////////////////////////////
-#9 Listar vacantes
+5 Aplicarse a una Vacante
 
-query ListarVacantes {
-  vacancies {
-    id
-    title
-    service {
-      name
-    }
-    employer
-    location
-    createdAt
-  }
+mutation PostularseAVacante {
+  applyToVacancy(
+    professionalId: "ID_DEL_PROFESIONAL"
+    vacancyId: "ID_DE_LA_VACANTE"
+  )
 }
 
 //////////////////////////////////////////////////
-///////////////// IMPRESIONES ////////////////////
-//////////////////////////////////////////////////
-#1 Impresión general del empleador con la siguiente información: Cédula, nombre, puestos ofertados
+6 Consultas (Queries)  
 
-query ResumenDeEmpleador {
-  employerSummary(id: "ID_DEL_EMPLEADOR") {
-    name
-    taxId
-    vacanciesOffered
-  }
-}
-
-#2 Imprimir información específica de un profesional (recibido como parámetro), cédula, nombre, profesiones
-
+# Perfil completo del profesional
 query PerfilDeProfesional {
   professional(id: "ID_DEL_PROFESIONAL") {
     firstName
@@ -175,11 +139,22 @@ query PerfilDeProfesional {
     services {
       name
     }
+    workExperience {
+      jobTitle
+      company
+      startDate
+      endDate
+      description
+    }
+    education {
+      degree
+      institution
+      year
+    }
   }
 }
 
-#3 Impresión de inventario de plazas o puestos vacantes
-
+# Inventario de vacantes
 query InventarioDeVacantes {
   vacancies {
     id
@@ -193,8 +168,16 @@ query InventarioDeVacantes {
   }
 }
 
-#4 Nombre de todos los profesionales postulantes para una determinada área, el usuario selecciona el área
+# Resumen de empleador
+query ResumenDeEmpleador {
+  employerSummary(id: "ID_DEL_EMPLEADOR") {
+    name
+    taxId
+    vacanciesOffered
+  }
+}
 
+# Postulantes por área (servicio)
 query PostulantesPorArea {
   applicantsByService(serviceId: "ID_DEL_SERVICIO") {
     serviceName
@@ -202,8 +185,7 @@ query PostulantesPorArea {
   }
 }
 
-#5 Cantidad y porcentaje de profesionales registradas por área
-
+# Estadísticas de profesionales por servicio
 query EstadisticasPorServicio {
   professionalsByServiceStats {
     serviceName
@@ -212,14 +194,10 @@ query EstadisticasPorServicio {
   }
 }
 
-#6 Cantidad de profesionales registrados por género
-
+# Estadísticas de profesionales por género
 query CantidadPorGenero {
   professionalsByGender {
     gender
     count
   }
 }
-
-
-npm install @faker-js/faker@latest

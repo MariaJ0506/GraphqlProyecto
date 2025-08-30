@@ -121,11 +121,25 @@ const typeDefs = gql`
     year: Int
   }
 
+  # Input type for full professional registration (CV)
+  input FullProfessionalInput {
+    firstName: String!
+    lastName: String
+    email: String
+    gender: String
+    taxId: String!
+    services: [ID!]!
+    workExperience: [WorkExperienceInput!]
+    education: [EducationInput!]
+  }
+
   # Root mutation definitions
   type Mutation {
     createService(name: String!): Service!
     registerEmployer(data: EmployerInput!): EmployerSummary!
     registerProfessional(data: ProfessionalInput!): Professional!
+    # New mutation to register a full professional CV
+    registerFullProfessional(data: FullProfessionalInput!): Professional!
     assignServicesToProfessional(professionalId: ID!, serviceIds: [ID!]!): Boolean!
     applyToVacancy(professionalId: ID!, vacancyId: ID!): Boolean!
     addWorkExperience(professionalId: ID!, experience: WorkExperienceInput!): Professional!

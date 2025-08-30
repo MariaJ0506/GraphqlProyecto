@@ -10,31 +10,33 @@ async function seedDatabase() {
     try {
         await client.connect();
         const db = client.db(process.env.DB_NAME);
-        console.log("Conectado a la base de datos.");
+        console.log("Connected to database.");
 
-        console.log("Eliminando colecciones existentes...");
+        // Drop existing collections to start fresh
         const collections = ['services', 'employers', 'professionals', 'vacancies', 'applications'];
         for (const name of collections) {
             try {
                 await db.collection(name).drop();
-                console.log(`[seed] Eliminada la colección: ${name}`);
+                console.log(`[seed] Dropped collection: ${name}`);
             } catch (e) {
-                // Ignorar el error si la colección no existe
+                // Ignore if collection does not exist
             }
         }
 
-        const serviceNames = ['IT', 'Marketing', 'Contabilidad', 'Construcción', 'Diseño Gráfico', 'Recursos Humanos', 'Ventas', 'Legal', 'Salud', 'Educación'];
+        // Insert services
+        const serviceNames = ['IT', 'Marketing', 'Accounting', 'Construction', 'Graphic Design', 'Human Resources', 'Sales', 'Legal', 'Health', 'Education'];
         const services = serviceNames.map(name => ({
             _id: new ObjectId(),
             name
         }));
         await db.collection('services').insertMany(services);
-        console.log(`Insertados ${services.length} servicios.`);
+        console.log(`Inserted ${services.length} services.`);
 
+        // Insert employers (juridical or physical persons)
         const employers = [];
         for (let i = 0; i < 50; i++) {
-            const isJuridico = faker.helpers.arrayElement([true, false]);
-            if (isJuridico) {
+            const isJuridical = faker.helpers.arrayElement([true, false]);
+            if (isJuridical) {
                 employers.push({
                     _id: new ObjectId(),
                     companyName: faker.company.name(),
@@ -52,20 +54,21 @@ async function seedDatabase() {
             }
         }
         await db.collection('employers').insertMany(employers);
-        console.log(`Insertados ${employers.length} empleadores.`);
+        console.log(`Inserted ${employers.length} employers.`);
 
+        // Insert professionals with random education and work experience
         const professionals = [];
-        const genders = ['Femenino', 'Masculino'];
+        const genders = ['Female', 'Male'];
         for (let i = 0; i < 150; i++) {
             const gender = faker.helpers.arrayElement(genders);
-            const firstName = faker.person.firstName(gender === 'Femenino' ? 'female' : 'male');
-            const lastName = faker.person.lastName(gender === 'Femenino' ? 'female' : 'male');
+            const firstName = faker.person.firstName(gender === 'Female' ? 'female' : 'male');
+            const lastName = faker.person.lastName(gender === 'Female' ? 'female' : 'male');
             professionals.push({
                 _id: new ObjectId(),
-                firstName: firstName,
-                lastName: lastName,
-                email: faker.internet.email({ firstName: firstName, lastName: lastName }),
-                gender: gender,
+                firstName,
+                lastName,
+                email: faker.internet.email({ firstName, lastName }),
+                gender,
                 taxId: faker.string.numeric(10),
                 services: faker.helpers.arrayElements(services, { min: 1, max: 3 }).map(s => s._id),
                 education: Array.from({ length: faker.helpers.arrayElement([0, 1, 2]) }, () => ({
@@ -83,8 +86,9 @@ async function seedDatabase() {
             });
         }
         await db.collection('professionals').insertMany(professionals);
-        console.log(`Insertados ${professionals.length} profesionales.`);
+        console.log(`Inserted ${professionals.length} professionals.`);
 
+        // Insert vacancies (linked to employers and services)
         const vacancies = [];
         for (let i = 0; i < 100; i++) {
             const randomEmployer = faker.helpers.arrayElement(employers);
@@ -99,9 +103,9 @@ async function seedDatabase() {
             });
         }
         await db.collection('vacancies').insertMany(vacancies);
-        console.log(`Insertadas ${vacancies.length} vacantes.`);
+        console.log(`Inserted ${vacancies.length} vacancies.`);
 
-        console.log(`Creando postulaciones...`);
+        // Insert applications (linking professionals and vacancies, avoiding duplicates)
         const applications = [];
         const uniqueApplications = new Set();
         while (applications.length < 500) {
@@ -111,19 +115,19 @@ async function seedDatabase() {
             if (!uniqueApplications.has(key)) {
                 uniqueApplications.add(key);
                 applications.push({
-                    professionalId: professionalId,
-                    vacancyId: vacancyId,
+                    professionalId,
+                    vacancyId,
                     appliedAt: faker.date.recent({ days: 30 })
                 });
             }
         }
         await db.collection('applications').insertMany(applications);
-        console.log(`Insertadas ${applications.length} postulaciones.`);
+        console.log(`Inserted ${applications.length} applications.`);
 
-        console.log("¡Siembra de datos completa y exitosa! 🌱");
+        console.log("✅ Database seeding completed successfully!");
 
     } catch (error) {
-        console.error("Error al poblar la base de datos:", error);
+        console.error("❌ Error while seeding database:", error);
     } finally {
         await client.close();
     }

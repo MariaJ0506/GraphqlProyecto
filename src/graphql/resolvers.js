@@ -3,6 +3,7 @@ const { UserInputError } = require("apollo-server");
 
 const resolvers = {
   Query: {
+    // Get a professional by ID (with services populated)
     async professional(_, { id }, { db }) {
       const _id = new ObjectId(id);
       const pipeline = [
@@ -38,6 +39,8 @@ const resolvers = {
       const results = await db.collection("professionals").aggregate(pipeline).toArray();
       return results[0] || null;
     },
+
+    // Get employer summary with total vacancies
     async employerSummary(_, { id }, { db }) {
       const _id = new ObjectId(id);
       const employer = await db.collection("employers").findOne({ _id });
@@ -46,6 +49,8 @@ const resolvers = {
       const name = employer.companyName ?? [employer.firstName, employer.lastName].filter(Boolean).join(" ");
       return { id: String(employer._id), name, taxId: employer.taxId ?? null, vacanciesOffered: count };
     },
+
+    // List all professionals (with services populated)
     async professionals(_, __, { db }) {
       const pipeline = [
         { $lookup: { from: "services", localField: "services", foreignField: "_id", as: "serviceObjects" } },
@@ -68,6 +73,8 @@ const resolvers = {
       ];
       return await db.collection("professionals").aggregate(pipeline).toArray();
     },
+
+    // List all vacancies (with service and employer populated)
     async vacancies(_, __, { db }) {
       const pipeline = [
         { $lookup: { from: "services", localField: "serviceId", foreignField: "_id", as: "s" } },
@@ -92,14 +99,18 @@ const resolvers = {
       ];
       return await db.collection("vacancies").aggregate(pipeline).toArray();
     },
+
+    // List applicants for a given service
     async applicantsByService(_, { serviceId }, { db }) {
       const sid = new ObjectId(serviceId);
 
+      // Validate service exists
       const service = await db.collection("services").findOne({ _id: sid });
       if (!service) {
-        throw new UserInputError("El ID del servicio no es válido.");
+        throw new UserInputError("The service ID is not valid.");
       }
 
+      // Aggregate applicants for vacancies with that service
       const pipeline = [
         { $lookup: { from: "vacancies", localField: "vacancyId", foreignField: "_id", as: "v" } },
         { $match: { "v.0.serviceId": sid } },
@@ -117,6 +128,8 @@ const resolvers = {
         applicants: applicants
       };
     },
+
+    // Stats: number of professionals grouped by service
     async professionalsByServiceStats(_, __, { db }) {
       const pipeline = [
         { $unwind: "$services" },
@@ -137,26 +150,34 @@ const resolvers = {
       ];
       return await db.collection("professionals").aggregate(pipeline).toArray();
     },
+
+    // Stats: number of professionals grouped by gender
     async professionalsByGender(_, __, { db }) {
       const pipeline = [
         { $group: { _id: "$gender", count: { $sum: 1 } } },
-        { $project: { _id: 0, gender: { $ifNull: ["$_id", "No especificado"] }, count: 1 } },
+        { $project: { _id: 0, gender: { $ifNull: ["$_id", "Not specified"] }, count: 1 } },
         { $sort: { count: -1 } }
       ];
       return await db.collection("professionals").aggregate(pipeline).toArray();
     },
+
+    // Get all services
     async services(_, __, { db }) {
       return await db.collection("services").find().toArray();
     }
   },
+
   Mutation: {
+    // Create a new service
     async createService(_, { name }, { db }) {
       const { insertedId } = await db.collection("services").insertOne({ name });
       return { id: insertedId, name };
     },
+
+    // Register a new employer
     async registerEmployer(_, { data }, { db }) {
       if (!data.type) {
-        throw new UserInputError("Debe especificar el tipo de empleador: 'fisica' o 'juridica'.");
+        throw new UserInputError("You must specify the type of employer: 'fisica' or 'juridica'.");
       }
 
       const doc = {
@@ -167,12 +188,13 @@ const resolvers = {
         taxId: data.taxId?.trim() || null
       };
       
+      // Validation by employer type
       if (doc.employerType === 'fisica' && (!doc.firstName || !doc.lastName)) {
-          throw new UserInputError("Para empleadores de tipo 'fisica', se requiere firstName y lastName.");
+          throw new UserInputError("For employers of type 'fisica', firstName and lastName are required.");
       }
       
       if (doc.employerType === 'juridica' && !doc.companyName) {
-          throw new UserInputError("Para empleadores de tipo 'juridica', se requiere companyName.");
+          throw new UserInputError("For employers of type 'juridica', companyName is required.");
       }
 
       const { insertedId } = await db.collection("employers").insertOne(doc);
@@ -181,6 +203,8 @@ const resolvers = {
       
       return { id: String(insertedId), name, taxId: doc.taxId, vacanciesOffered: 0 };
     },
+
+    // Register a new professional
     async registerProfessional(_, { data }, { db }) {
       const serviceIds = (data.services || []).map(id => new ObjectId(id));
       const doc = {
@@ -198,6 +222,8 @@ const resolvers = {
       const serviceObjects = await db.collection("services").find({ _id: { $in: newProfessional.services } }).toArray();
       return { id: String(newProfessional._id), ...newProfessional, services: serviceObjects.map(s => ({ id: String(s._id), name: s.name })) };
     },
+
+    // Assign services to a professional
     async assignServicesToProfessional(_, { professionalId, serviceIds }, { db }) {
       const _id = new ObjectId(professionalId);
       const sIds = serviceIds.map(id => new ObjectId(id));
@@ -205,11 +231,12 @@ const resolvers = {
       return true;
     },
     
+    // Add work experience to a professional
     async addWorkExperience(_, { professionalId, experience }, { db }) {
       const _id = new ObjectId(professionalId);
       const professional = await db.collection("professionals").findOne({ _id });
       if (!professional) {
-          throw new UserInputError("El profesional no fue encontrado.");
+          throw new UserInputError("The professional was not found.");
       }
       
       const updateResult = await db.collection("professionals").updateOne(
@@ -227,14 +254,15 @@ const resolvers = {
         };
       }
       
-      throw new Error("No se pudo agregar la experiencia laboral.");
+      throw new Error("Work experience could not be added.");
     },
 
+    // Add education to a professional
     async addEducation(_, { professionalId, education }, { db }) {
       const _id = new ObjectId(professionalId);
       const professionalExists = await db.collection("professionals").findOne({ _id });
       if (!professionalExists) {
-          throw new UserInputError("El profesional no fue encontrado.");
+          throw new UserInputError("The professional was not found.");
       }
       
       const updateResult = await db.collection("professionals").updateOne(
@@ -252,9 +280,10 @@ const resolvers = {
           };
       }
       
-      throw new Error("No se pudo agregar la educación.");
+      throw new Error("Education could not be added.");
     },
 
+    // Apply a professional to a vacancy (limit: 3 per month)
     async applyToVacancy(_, { professionalId, vacancyId }, { db }) {
       const pId = new ObjectId(professionalId);
       const vId = new ObjectId(vacancyId);
@@ -269,7 +298,7 @@ const resolvers = {
       });
       
       if (applicationsCount >= 3) {
-        throw new UserInputError("No puedes postular a más de 3 puestos por mes.");
+        throw new UserInputError("You cannot apply to more than 3 positions per month.");
       }
 
       const doc = {
@@ -283,11 +312,13 @@ const resolvers = {
         return true;
       } catch (e) {
         if (e.code === 11000) {
-          throw new UserInputError("Ya te has postulado a esta vacante.");
+          throw new UserInputError("You have already applied to this vacancy.");
         }
         throw e;
       }
     },
+
+    // Create a new vacancy
     async createVacancy(_, { title, serviceId, employerId, location }, { db }) {
       const sId = new ObjectId(serviceId);
       const eId = new ObjectId(employerId);
@@ -296,11 +327,11 @@ const resolvers = {
       const employer = await db.collection("employers").findOne({ _id: eId });
     
       if (!service) {
-        throw new UserInputError("El ID del servicio no es válido.");
+        throw new UserInputError("The service ID is not valid.");
       }
       
       if (!employer) {
-        throw new UserInputError("El ID del empleador no es válido.");
+        throw new UserInputError("The employer ID is not valid.");
       }
       
       const doc = {

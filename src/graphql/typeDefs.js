@@ -1,11 +1,14 @@
 const { gql } = require("apollo-server");
 
+// GraphQL schema definitions
 const typeDefs = gql`
+  # Service entity
   type Service {
     id: ID!
     name: String!
   }
 
+  # Work experience for a professional
   type WorkExperience {
     jobTitle: String!
     company: String!
@@ -14,12 +17,14 @@ const typeDefs = gql`
     description: String
   }
 
+  # Education background of a professional
   type Education {
     degree: String!
     institution: String!
     year: Int
   }
 
+  # Professional entity
   type Professional {
     id: ID!
     firstName: String!
@@ -32,6 +37,7 @@ const typeDefs = gql`
     education: [Education!]
   }
 
+  # Job vacancy entity
   type Vacancy {
     id: ID!
     title: String!
@@ -41,6 +47,7 @@ const typeDefs = gql`
     createdAt: String!
   }
 
+  # Employer summary entity
   type EmployerSummary {
     id: ID!
     name: String!
@@ -48,22 +55,26 @@ const typeDefs = gql`
     vacanciesOffered: Int!
   }
 
+  # Statistics of services
   type ServiceStat {
     serviceName: String!
     count: Int!
     percentage: Float!
   }
 
+  # Statistics of professionals by gender
   type GenderStat {
     gender: String!
     count: Int!
   }
 
+  # Applicants grouped by service
   type ApplicantsByServiceResult {
     serviceName: String!
     applicants: [String!]!
   }
 
+  # Root query definitions
   type Query {
     employerSummary(id: ID!): EmployerSummary
     professionals: [Professional!]!
@@ -75,6 +86,7 @@ const typeDefs = gql`
     services: [Service!]!
   }
 
+  # Input type for employer registration
   input EmployerInput {
     type: String
     firstName: String
@@ -83,6 +95,7 @@ const typeDefs = gql`
     taxId: String
   }
 
+  # Input type for professional registration
   input ProfessionalInput {
     firstName: String!
     lastName: String
@@ -92,6 +105,7 @@ const typeDefs = gql`
     services: [ID!]!
   }
 
+  # Input type for work experience
   input WorkExperienceInput {
     jobTitle: String!
     company: String!
@@ -100,12 +114,14 @@ const typeDefs = gql`
     description: String
   }
 
+  # Input type for education
   input EducationInput {
     degree: String!
     institution: String!
     year: Int
   }
 
+  # Root mutation definitions
   type Mutation {
     createService(name: String!): Service!
     registerEmployer(data: EmployerInput!): EmployerSummary!
